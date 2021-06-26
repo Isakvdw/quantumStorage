@@ -6,7 +6,6 @@ from django.contrib.auth.hashers import make_password
 from quantumStorage.settings import AUTH_SALT
 import binascii
 import os
-from django.contrib.auth import password_validation
 ###############################################################################
 #                          CODING CONVENTIONS
 # ------------------------------------------------------------------------------
@@ -25,6 +24,12 @@ class Bucket(models.Model):
     class Meta:
         unique_together = ("owner","name")
 
+# @returns (user: StorageUser, bucket: Bucket)
+class AppTokenManager(models.Manager):
+    def authenticate(self, app_token):
+        key = self.objects.filter(token=app_token)
+        return key.first().user, key.first().bucket if key.exists() else None, None
+
 # Defines the model that holds the application authentication/authorization tokens.
 class AppTokens(models.Model):
     # hash of the application token that is used to access and update a bucket
@@ -33,9 +38,9 @@ class AppTokens(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     # Bucket the key is bound to
     bucket = models.ForeignKey(Bucket, on_delete=models.CASCADE)
+    objects = AppTokenManager()
 
-    def authenticate(self,app_token):
-        self.objects.filter(token=app_token)
+
 
 class DownloadTokens(models.Model):
     # id = models.AutoField(primary_key=True)
@@ -97,8 +102,9 @@ class StorageUser(AbstractBaseUser):
     # email = models.EmailField(verbose_name='email', max_length=50, unique=True, primary_key=True)
     email = models.EmailField(verbose_name='email', max_length=255, unique=True)
 
+    # refer to auth.py for masterkey handling
     masterkey = models.CharField(max_length=40, unique=True)
-    quota = models.PositiveIntegerField(default=1000)
+    quota = models.PositiveIntegerField(default=1024*1024) # 1 MB
 
     # creation_date = models.DateTimeField(verbose_name='creation_date', auto_now_add=True)
     # last_login = models.DateTimeField(verbose_name='last_login', auto_now=True)
@@ -141,8 +147,8 @@ class StorageUser(AbstractBaseUser):
         return self.is_staff
 
     #We dont restrict on models, change if needed in future
-    def has_module_perms(self, app_label):
-        return True
+    # def has_module_perms(self, app_label):
+    #     return True
 
     @property
     def is_staff(self):

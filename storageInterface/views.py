@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate, login
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.http import HttpResponse
-from .models import Bucket, StorageUser
+from .models import Bucket, StorageUser, AppTokens
 from quantumStorage.settings import STORAGE_ROOT,STORAGE_DELETE
 import os
 import shutil
@@ -28,8 +28,8 @@ def index(request):
 
     # received_json_data = json.loads(request.body.decode("utf-8"))
 
-    fs = FileSystemStorage(location='S:/TEST', base_url=None)
-    path = fs.save('file.txt', ContentFile(b'new content'))
+    # fs = FileSystemStorage(location='S:/TEST', base_url=None)
+    # path = fs.save('file.txt', ContentFile(b'new content'))
     # try:
     #     print(fs.listdir('../'))
     # except SuspiciousFileOperation:
@@ -60,18 +60,19 @@ def token_remove(request):
 #==========================
 
 @csrf_exempt
-def bucket_list(request): # GET
+def bucket_list(request):
+    # GET
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    validateR = validateRequest(request, 'GET')
-    if not isinstance(validateR, StorageUser):
-        return validateR
-
-    user = validateR
+    error, isMasterKey, user = validateRequest(request, reqType='GET')
+    if error:
+        return error
+    if not isMasterKey:
+        return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
-    data = list(Bucket.objects.filter(owner=user).values_list('name',flat=True))
 
+    data = { "Buckets" : list(Bucket.objects.filter(owner=user).values_list('name',flat=True)) }
     return successResponse('Buckets retrieved successfully', data)
 
 @csrf_exempt
@@ -79,16 +80,16 @@ def bucket_add(request, bucket_name):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    authResult = validateRequest(request)
-    if not isinstance(authResult, StorageUser):
-        return authResult
-
-    user = authResult
+    error, isMasterKey, user = validateRequest(request)
+    if error:
+        return error
+    if not isMasterKey:
+        return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
 
     # Checks to see if request is valid
     if Bucket.objects.filter(owner=user,name=bucket_name).exists():
-        return errorResponse('DUPLICATE_NAME')
+        return errorResponse('BUCKET_EXISTS')
 
     # valid request, create the bucket
     newBucket = Bucket.objects.create(owner=user,name=bucket_name)
@@ -102,16 +103,16 @@ def bucket_remove(request, bucket_name):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    validateR = validateRequest(request)
-    if not isinstance(validateR, StorageUser):
-        return validateR
-
-    user = validateR
+    error, isMasterKey, user, currBucket = validateRequest(request, bucket_name=bucket_name)
+    if error:
+        return error
+    if not isMasterKey:
+        return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
-    currBucket = Bucket.objects.filter(owner=user, name=bucket_name)
-    if not currBucket.exists():
-        return errorResponse('BUCKET_DNE', 404)
-    currBucket = currBucket.first()
+    # currBucket = Bucket.objects.filter(owner=user, name=bucket_name)
+    # if not currBucket.exists():
+    #     return errorResponse('BUCKET_DNE', 404)
+    # currBucket = currBucket.first()
 
 
     if STORAGE_DELETE:
@@ -134,47 +135,97 @@ def bucket_remove(request, bucket_name):
 @csrf_exempt
 def file_quota(request):
     # GET
-    return None
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user = validateRequest(request, reqType='GET')
+    if error:
+        return error
+    # ++++++++++++++++++++++++++++++++)
+    data = {"space_left": user.quota - getsize(user)}
+    return successResponse('File quota retrieved successfully', data)
 
 @csrf_exempt
 def file_add(request, bucket_name, location=''):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    validateR = validateRequest(request)
-    if not isinstance(validateR, StorageUser):
-        return validateR
-
-    user = validateR
+    error, isMasterKey, user, currBucket = validateRequest(request, bucket_name=bucket_name)
+    if error:
+        return error
     # ++++++++++++++++++++++++++++++++
-    currBucket = Bucket.objects.filter(owner=user, name=bucket_name)
-    if not currBucket.exists():
-        return errorResponse('BUCKET_DNE', 404)
-    currBucket = currBucket.first()
-
     # create fss object that has root location of bucket for extra security
-    fs = FileSystemStorage(location=os.path.join(STORAGE_ROOT, str(currBucket.id)), base_url=None)
-    # ++++++++++++++++++++++++++++++++
 
+    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
+    # ++++++++++++++++++++++++++++++++
 
     files = request.FILES.getlist('files')
     # Iterate through all files and save at correct location
-    # FileSystemStorage.save() ensures that files are not overwritten
+    # Files are not automatically overwriten, force=true can be set in the request to automatically overwrite
     # This method also provides automatic folder creation
     for f in files:
         try:
-            fs.save(os.path.join(location, os.path.basename(f.name)), f)
+            fileLoc = os.path.join(location, os.path.basename(f.name))
+            # Likely not suitable for very high amounts of traffic, but most accurate and error tolerant
+            if getsize(user) + f.size > user.quota:
+                return errorResponse('INSUFFICIENT_SPACE', 400)
+            if fs.exists(fileLoc):
+                if request.POST.get('force') == 'true':
+                    fs.delete(fileLoc)
+                else:
+                    return errorResponse('FILE_ALREADY_EXISTS')
+
+            fs.save(fileLoc, f)
         except SuspiciousFileOperation:
             return errorResponse('INVALID_PATH')
 
     return successResponse('File add successful')
 
 @csrf_exempt
-def file_remove(request):
-    return None
+def file_remove(request, bucket_name, file_location):
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user, currBucket = validateRequest(request, bucket_name=bucket_name)
+    if error:
+        return error
+    # ++++++++++++++++++++++++++++++++
+    # create fss object that has root location of bucket for extra security
+
+    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
+    # ++++++++++++++++++++++++++++++++
+
+    # if its a directory, then check if its empty
+    if os.path.isdir(fs.path(file_location)) and not len(os.listdir(fs.path(file_location))):
+        return errorResponse('DIR_NOT_EMPTY', 400)
+
+    # finally delete it, if item DNE it wont throw error
+    fs.delete(file_location)
+
+    return successResponse('File delete completed')
 @csrf_exempt
-def file_mkdir(request):
-    return None
+def file_mkdir(request, bucket_name, location):
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user, currBucket = validateRequest(request, bucket_name=bucket_name)
+    if error:
+        return error
+    # ++++++++++++++++++++++++++++++++
+    # create fss object that has root location of bucket for extra security
+
+    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
+    # ++++++++++++++++++++++++++++++++
+
+    # Create the directory by using a temp file, not the most efficient but ensures security by using fss
+    temp = os.path.join(location,'.TEMP')
+    fs.save(temp, ContentFile(''))
+    fs.delete(temp)
+
+    return successResponse('mkdir successful')
 @csrf_exempt
 def file_get(request):
 
@@ -202,20 +253,57 @@ def successResponse(msg, data=None,code=200):
     else:
         return JsonResponse({'status': 'success', 'message': msg}, status=code)
 
-
-# checks if request is valid, returns user if valide, and error response if not
-# can be converted to UserPassesTestMixin or middleware in future
-def validateRequest(request, reqType='POST'):
+# checks if request is valid and authorized, returns user if valide, and error response if not
+# can perhaps be converted to UserPassesTestMixin or middleware in future
+# @returns (error: JsonResponse, isMasterKey: Boolean, user: StorageUser, bucket: Bucket)
+def validateRequest(request, reqType='POST', bucket_name=None):
     if request.method != reqType:
-        return errorResponse('REQ_METHOD_INVALID',405)
+        return errorResponse('REQ_METHOD_INVALID', 405),None,None,None
 
-    key = request.META.get('HTTP_X_API_KEY')
-    if not key:
-        return errorResponse('UNAUTHORIZED', 401)
+    master = False
+    linked_bucket = None
+    master_key = request.META.get('HTTP_X_API_MKEY')
+    application_key = request.META.get('HTTP_X_API_AKEY')
 
-    user = authenticate(request, token=key)
+    if master_key:
+        user = authenticate(request, token=master_key)
+        master = True
+    elif application_key:
+        user, linked_bucket = AppTokens.objects.authenticate(app_token=application_key)
+    else:
+        return errorResponse('UNAUTHORIZED', 401),None,None,None
+
     if not user:
-        return errorResponse('UNAUTHORIZED', 401)
+        return errorResponse('UNAUTHORIZED', 401),None,None,None
 
-    return user
+    if bucket_name:
+        # if application token, check if bucket is correct
+        if not master:
+            if bucket_name == linked_bucket:
+                return None, master, user, linked_bucket
+            else:
+                return errorResponse('INVALID_BUCKET'),None,None,None
 
+        # if master token, check if bucket is valid
+        currBucket = Bucket.objects.filter(owner=user, name=bucket_name)
+        if not currBucket.exists():
+            return errorResponse('BUCKET_DNE', 404),None,None,None
+
+        return None, master, user, currBucket.first()
+
+    return None, master, user
+
+
+# Gets size of all folder content to check against user quota
+# @parm (user: StorageUser)
+# @return (size: int) used size of user in bytes
+def getsize(user) -> int:
+    buckets = list(Bucket.objects.filter(owner=user).values_list(flat=True))
+    size = 0
+    for bucket in buckets:
+        bucket_path = os.path.join(STORAGE_ROOT, str(bucket))
+        for path, dirs, files in os.walk(bucket_path):
+            for f in files:
+                fp = os.path.join(path, f)
+                size += os.path.getsize(fp)
+    return size
