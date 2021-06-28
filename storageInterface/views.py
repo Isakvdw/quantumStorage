@@ -1,15 +1,13 @@
 from django.shortcuts import render
-from django.http import HttpResponse
 from django.core.files.storage import FileSystemStorage
 from django.core.exceptions import SuspiciousFileOperation, PermissionDenied
-from storageInterface.models import StorageUser
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
 from django.core.files.base import ContentFile
-from django.http import JsonResponse
-from django.http import HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from .models import Bucket, StorageUser, AppTokens
 from quantumStorage.settings import STORAGE_ROOT,STORAGE_DELETE
+from .downloadtokens import file_token_generator
 import os
 import shutil
 import time
@@ -49,6 +47,7 @@ def index(request):
 #==========================
 @csrf_exempt
 def token_add(request):
+
     return None
 @csrf_exempt
 def token_remove(request):
@@ -109,11 +108,6 @@ def bucket_remove(request, bucket_name):
     if not isMasterKey:
         return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
-    # currBucket = Bucket.objects.filter(owner=user, name=bucket_name)
-    # if not currBucket.exists():
-    #     return errorResponse('BUCKET_DNE', 404)
-    # currBucket = currBucket.first()
-
 
     if STORAGE_DELETE:
         # "safe delete" move to folder for later delete, for recovery or forensics
@@ -205,6 +199,7 @@ def file_remove(request, bucket_name, file_location):
     fs.delete(file_location)
 
     return successResponse('File delete completed')
+
 @csrf_exempt
 def file_mkdir(request, bucket_name, location):
     # ++++++++++++++++++++++++++++++++
@@ -226,10 +221,56 @@ def file_mkdir(request, bucket_name, location):
     fs.delete(temp)
 
     return successResponse('mkdir successful')
-@csrf_exempt
-def file_get(request):
 
-    return None
+@csrf_exempt
+def file_get(request, bucket_name, file_location):
+    # GET
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user, currBucket = validateRequest(request, bucket_name=bucket_name, reqType='GET')
+    if error:
+        return error
+    # ++++++++++++++++++++++++++++++++
+    # check if file exists
+    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    fs = FileSystemStorage(location=currRoot, base_url=None)
+    if not fs.exists(file_location):
+        return errorResponse('FILE_DNE', 404)
+    # check if its a folder
+    if os.path.isdir(fs.path(file_location)):
+        return errorResponse('NOT_A_FILE', 404)
+    # ++++++++++++++++++++++++++++++++
+    file_token = file_token_generator.make_token(currBucket, file_location)
+    if not file_token:
+        return errorResponse('FILE_DNE',404)
+
+    data = {'file_token':file_token}
+    return successResponse('File token generation succesfull', data)
+
+@csrf_exempt
+def file_download(request, token):
+    # GET
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks - PUBLIC PAGE, NO AUTH
+    # ++++++++++++++++++++++++++++++++
+    # error, isMasterKey, user, currBucket = validateRequest(request, bucket_name=bucket_name, reqType='GET')
+    # if error:
+    #     return error
+    # ++++++++++++++++++++++++++++++++
+    if request.method != 'GET':
+        return errorResponse('REQ_METHOD_INVALID', 405)
+
+    file = file_token_generator.use_token(token)
+    if not file:
+        return errorResponse('INVALID_TOKEN')
+
+    response = FileResponse(file)
+    response["Content-Disposition"] = "attachment; filename=" + file.name
+
+    return response
+
+
 #==========================
 
 #==========================

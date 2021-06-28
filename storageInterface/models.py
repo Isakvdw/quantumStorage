@@ -47,9 +47,9 @@ class DownloadTokens(models.Model):
     #Need to check for length
 
     # Location of the file in the bucket
-    location = models.CharField(max_length=150, unique=True)
+    location = models.CharField(max_length=150) # unique=True
     # When the token was created, provides expiry ability if needed in future, serves to validate key - hence its the primary key
-    timestamp = models.DateTimeField(auto_now_add=True, primary_key=True)
+    timestamp = models.DateTimeField(primary_key=True)
     # which bucket its stored in
     bucket = models.ForeignKey(Bucket, on_delete=models.CASCADE)
 
