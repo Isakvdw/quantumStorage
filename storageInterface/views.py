@@ -21,9 +21,6 @@ def index(request):
         return HttpResponse('401 Unauthorized',status=401)
     if request.method != 'POST':
         return HttpResponse('401 Unauthorized',status=405)
-
-
-
     # received_json_data = json.loads(request.body.decode("utf-8"))
 
     # fs = FileSystemStorage(location='S:/TEST', base_url=None)
@@ -46,12 +43,38 @@ def index(request):
 # Token management
 #==========================
 @csrf_exempt
-def token_add(request):
+def token_add(request, bucket):
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user = validateRequest(request)
+    if error:
+        return error
+    if not isMasterKey:
+        return errorResponse('UNAUTHORIZED', 403)
+    # ++++++++++++++++++++++++++++++++
+    app_token = AppTokens.objects.create_token(bucket=bucket, user=user)
+    data = {'token': app_token}
+    return successResponse('Token creation successfull', data)
 
-    return None
 @csrf_exempt
-def token_remove(request):
-    return None
+def token_remove(request, bucket):
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user = validateRequest(request)
+    if error:
+        return error
+    if not isMasterKey:
+        return errorResponse('UNAUTHORIZED', 403)
+    # ++++++++++++++++++++++++++++++++
+    app_token = AppTokens.objects.filter(bucket=bucket)
+    if not app_token.exists():
+        return errorResponse('TOKEN_DNE')
+
+    app_token.first().delete()
+    return successResponse('Token deletion successfull')
+
 #==========================
 
 #==========================

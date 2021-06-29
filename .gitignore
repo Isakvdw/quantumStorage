@@ -4,6 +4,7 @@
 *.pyc
 __pycache__
 db.sqlite3
+StorageDB.sqlite3
 media
 static/
 
@@ -124,4 +125,4 @@ GitHub.sublime-settings
 
 Scripts/
 pyvenv.cfg
-digitization_app/migrations/
+storageInterface/migrations/

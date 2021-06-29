@@ -30,6 +30,11 @@ class AppTokenManager(models.Manager):
         key = self.objects.filter(token=app_token)
         return key.first().user, key.first().bucket if key.exists() else None, None
 
+    def create_token(self, user, bucket):
+        token = binascii.hexlify(os.urandom(20)).decode()
+        self.objects.create(token=token, user=user,bucke=bucket)
+        return token
+
 # Defines the model that holds the application authentication/authorization tokens.
 class AppTokens(models.Model):
     # hash of the application token that is used to access and update a bucket
@@ -39,7 +44,6 @@ class AppTokens(models.Model):
     # Bucket the key is bound to
     bucket = models.ForeignKey(Bucket, on_delete=models.CASCADE)
     objects = AppTokenManager()
-
 
 
 class DownloadTokens(models.Model):
