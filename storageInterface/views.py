@@ -387,7 +387,7 @@ def sys_info():
         "memory_free": result[1],
         "disk_free": result[2],
         "kernel_version": result[3],
-        # "upgradable_packages": result[4:]
-        "upgradable_packages": ['this','is','a','test']
+        "upgradable_packages": result[4:]
+        # "upgradable_packages": ['debugging','test','values']
     }
     return data
