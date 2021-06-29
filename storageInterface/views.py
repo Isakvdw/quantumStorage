@@ -11,6 +11,7 @@ from .downloadtokens import file_token_generator
 import os
 import shutil
 import time
+import subprocess
 
 
 # All requests are exempt from csrf since no forms are used - hence its not applicable
@@ -55,7 +56,7 @@ def token_add(request, bucket):
     # ++++++++++++++++++++++++++++++++
     app_token = AppTokens.objects.create_token(bucket=bucket, user=user)
     data = {'token': app_token}
-    return successResponse('Token creation successfull', data)
+    return successResponse('Token creation successful', data)
 
 @csrf_exempt
 def token_remove(request, bucket):
@@ -73,7 +74,7 @@ def token_remove(request, bucket):
         return errorResponse('TOKEN_DNE')
 
     app_token.first().delete()
-    return successResponse('Token deletion successfull')
+    return successResponse('Token deletion successful')
 
 #==========================
 
@@ -118,7 +119,7 @@ def bucket_add(request, bucket_name):
     # create bucket folder, set least priviledge (u+rw)
     os.mkdir(os.path.join(STORAGE_ROOT, str(newBucket.id)),0o600)
 
-    return successResponse('Bucket add successfull')
+    return successResponse('Bucket add successful')
 
 @csrf_exempt
 def bucket_remove(request, bucket_name):
@@ -269,7 +270,7 @@ def file_get(request, bucket_name, file_location):
         return errorResponse('FILE_DNE',404)
 
     data = {'file_token':file_token}
-    return successResponse('File token generation succesfull', data)
+    return successResponse('File token generation successful', data)
 
 @csrf_exempt
 def file_download(request, token):
@@ -301,7 +302,11 @@ def file_download(request, token):
 #==========================
 def serv_status(request):
     # GET
-    return None
+    # PUBLIC PAGE, NO AUTH
+    if request.method != 'GET':
+        return errorResponse('REQ_METHOD_INVALID', 405)
+    
+    return successResponse('Server status retrieval successful', sys_info())
 
 #==========================
 # Functions
@@ -371,3 +376,18 @@ def getsize(user) -> int:
                 fp = os.path.join(path, f)
                 size += os.path.getsize(fp)
     return size
+
+
+def sys_info():
+    process = subprocess.run("/home/megladon/Documents/quantumStorage/system_info.sh",capture_output=True,text=True)
+    data = process.stdout
+    result = data.strip().split('\n')
+    data = {
+        "system_load": result[0],
+        "memory_free": result[1],
+        "disk_free": result[2],
+        "kernel_version": result[3],
+        # "upgradable_packages": result[4:]
+        "upgradable_packages": ['this','is','a','test']
+    }
+    return data

@@ -15,5 +15,6 @@ urlpatterns = [
     path('file/quota', views.file_quota),
     path('token/create/<str:bucket_name>', views.file_quota),
     path('token/remove/<str:bucket_name>', views.file_quota),
+    path('status', views.serv_status),
 ]
 
