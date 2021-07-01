@@ -13,8 +13,8 @@ urlpatterns = [
     path('file/get/<str:bucket_name>/<path:file_location>', views.file_get),
     path('file/download/<str:token>', views.file_download),
     path('file/quota', views.file_quota),
-    path('token/create/<str:bucket_name>', views.file_quota),
-    path('token/remove/<str:bucket_name>', views.file_quota),
+    path('token/create/<str:bucket_name>', views.token_add),
+    path('token/remove/<str:token>', views.token_remove),
     path('status', views.serv_status),
 ]
 

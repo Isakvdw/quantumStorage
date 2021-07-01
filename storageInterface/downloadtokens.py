@@ -3,7 +3,8 @@ from django.conf import settings
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.http import base36_to_int, int_to_base36
 from .models import DownloadTokens
-from quantumStorage.settings import STORAGE_ROOT
+# from quantumStorage.settings import settings.STORAGE_ROOT
+from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from os import path
 # Generates a one time use token to access a file
@@ -40,7 +41,7 @@ class QuantumStorageTokenGenerator:
         except DownloadTokens.DoesNotExist:
             return False
 
-        currRoot = path.join(STORAGE_ROOT, str(currToken.bucket.id))
+        currRoot = path.join(settings.STORAGE_ROOT, str(currToken.bucket.id))
         fs = FileSystemStorage(location=currRoot, base_url=None)
         if not fs.exists(currToken.location):
             currToken.delete()
@@ -94,7 +95,7 @@ class QuantumStorageTokenGenerator:
         attempts using the reset token, provided the secret isn't compromised.
         """
 
-        currRoot = path.join(STORAGE_ROOT, str(bucket.id))
+        currRoot = path.join(settings.STORAGE_ROOT, str(bucket.id))
 
         file_timestamp = FileSystemStorage(location=currRoot, base_url=None).get_accessed_time(file_location)
 

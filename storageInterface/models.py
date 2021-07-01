@@ -35,6 +35,13 @@ class AppTokenManager(models.Manager):
         self.objects.create(token=token, user=user,bucke=bucket)
         return token
 
+    def delete_token(self, token):
+        temp = self.objects.filter(token=token)
+        if temp.exist():
+            temp.first().delete()
+            return True
+        return False
+
 # Defines the model that holds the application authentication/authorization tokens.
 class AppTokens(models.Model):
     # hash of the application token that is used to access and update a bucket

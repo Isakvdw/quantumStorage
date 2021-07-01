@@ -6,7 +6,8 @@ from django.contrib.auth import authenticate, login
 from django.core.files.base import ContentFile
 from django.http import JsonResponse, HttpResponse, FileResponse
 from .models import Bucket, StorageUser, AppTokens
-from quantumStorage.settings import STORAGE_ROOT,STORAGE_DELETE
+# from quantumStorage.settings import STORAGE_ROOT,STORAGE_DELETE
+from django.conf import settings
 from .downloadtokens import file_token_generator
 import os
 import shutil
@@ -59,7 +60,7 @@ def token_add(request, bucket):
     return successResponse('Token creation successful', data)
 
 @csrf_exempt
-def token_remove(request, bucket):
+def token_remove(request, token):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
@@ -69,11 +70,9 @@ def token_remove(request, bucket):
     if not isMasterKey:
         return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
-    app_token = AppTokens.objects.filter(bucket=bucket)
-    if not app_token.exists():
-        return errorResponse('TOKEN_DNE')
+    if not AppTokens.objects.delete_token(token=token):
+        return errorResponse('TOKEN_DNE', 404)
 
-    app_token.first().delete()
     return successResponse('Token deletion successful')
 
 #==========================
@@ -117,7 +116,7 @@ def bucket_add(request, bucket_name):
     # valid request, create the bucket
     newBucket = Bucket.objects.create(owner=user,name=bucket_name)
     # create bucket folder, set least priviledge (u+rw)
-    os.mkdir(os.path.join(STORAGE_ROOT, str(newBucket.id)),0o600)
+    os.mkdir(os.path.join(settings.STORAGE_ROOT, str(newBucket.id)),0o600)
 
     return successResponse('Bucket add successful')
 
@@ -133,13 +132,13 @@ def bucket_remove(request, bucket_name):
         return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
 
-    if STORAGE_DELETE:
+    if settings.STORAGE_DELETE:
         # "safe delete" move to folder for later delete, for recovery or forensics
         # moves to STORAGE_DELETE location and prepends current time to name
-        shutil.move(os.path.join(STORAGE_ROOT, str(currBucket.id)), os.path.join(STORAGE_DELETE, str(time.time())+'_'+str(currBucket.id)))
+        shutil.move(os.path.join(settings.STORAGE_ROOT, str(currBucket.id)), os.path.join(settings.STORAGE_DELETE, str(time.time())+'_'+str(currBucket.id)))
     else:
         # delete bucket and all its content
-        shutil.rmtree(os.path.join(STORAGE_ROOT, str(currBucket.id)))
+        shutil.rmtree(os.path.join(settings.STORAGE_ROOT, str(currBucket.id)))
 
     currBucket.delete()
     return successResponse('Bucket remove successful')
@@ -174,7 +173,7 @@ def file_add(request, bucket_name, location=''):
     # ++++++++++++++++++++++++++++++++
     # create fss object that has root location of bucket for extra security
 
-    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    currRoot = os.path.join(settings.STORAGE_ROOT, str(currBucket.id))
     fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
     # ++++++++++++++++++++++++++++++++
 
@@ -211,7 +210,7 @@ def file_remove(request, bucket_name, file_location):
     # ++++++++++++++++++++++++++++++++
     # create fss object that has root location of bucket for extra security
 
-    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    currRoot = os.path.join(settings.STORAGE_ROOT, str(currBucket.id))
     fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
     # ++++++++++++++++++++++++++++++++
 
@@ -235,15 +234,17 @@ def file_mkdir(request, bucket_name, location):
     # ++++++++++++++++++++++++++++++++
     # create fss object that has root location of bucket for extra security
 
-    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    currRoot = os.path.join(settings.STORAGE_ROOT, str(currBucket.id))
     fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
     # ++++++++++++++++++++++++++++++++
 
     # Create the directory by using a temp file, not the most efficient but ensures security by using fss
     temp = os.path.join(location,'.TEMP')
-    fs.save(temp, ContentFile(''))
-    fs.delete(temp)
-
+    try:
+        fs.save(temp, ContentFile(''))
+        fs.delete(temp)
+    except OSError:
+        return errorResponse('INVALID_DIR', 400)
     return successResponse('mkdir successful')
 
 @csrf_exempt
@@ -257,7 +258,7 @@ def file_get(request, bucket_name, file_location):
         return error
     # ++++++++++++++++++++++++++++++++
     # check if file exists
-    currRoot = os.path.join(STORAGE_ROOT, str(currBucket.id))
+    currRoot = os.path.join(settings.STORAGE_ROOT, str(currBucket.id))
     fs = FileSystemStorage(location=currRoot, base_url=None)
     if not fs.exists(file_location):
         return errorResponse('FILE_DNE', 404)
@@ -316,11 +317,11 @@ def errorResponse(errmsg, code=400):
     return JsonResponse({'status': 'error', 'message': errmsg}, status=code)
 
 # response for a valid request
-def successResponse(msg, data=None,code=200):
+def successResponse(msg, data=None):
     if data is not None:
-        return JsonResponse({'status': 'success', 'message': msg, 'data': data}, status=code)
+        return JsonResponse({'status': 'success', 'message': msg, 'data': data}, status=200)
     else:
-        return JsonResponse({'status': 'success', 'message': msg}, status=code)
+        return JsonResponse({'status': 'success', 'message': msg}, status=200)
 
 # checks if request is valid and authorized, returns user if valide, and error response if not
 # can perhaps be converted to UserPassesTestMixin or middleware in future
@@ -370,7 +371,7 @@ def getsize(user) -> int:
     buckets = list(Bucket.objects.filter(owner=user).values_list(flat=True))
     size = 0
     for bucket in buckets:
-        bucket_path = os.path.join(STORAGE_ROOT, str(bucket))
+        bucket_path = os.path.join(settings.STORAGE_ROOT, str(bucket))
         for path, dirs, files in os.walk(bucket_path):
             for f in files:
                 fp = os.path.join(path, f)
@@ -379,15 +380,24 @@ def getsize(user) -> int:
 
 
 def sys_info():
-    process = subprocess.run("/home/megladon/Documents/quantumStorage/system_info.sh",capture_output=True,text=True)
-    data = process.stdout
-    result = data.strip().split('\n')
+    script_loc = os.path.abspath(os.path.join(settings.PROJECT_ROOT, '..//system_info.sh'))
+    # process = subprocess.run(script_loc,capture_output=True,text=True)
+    # data = process.stdout
+    # result = data.strip().split('\n')
+    # data = {
+    #     "system_load": 100-int(result[0]),
+    #     "memory_free": result[1],
+    #     "disk_free": result[2],
+    #     "kernel_version": result[3],
+    #     "upgradable_packages": result[4:]
+    #     # "upgradable_packages": ['debugging','test','values']
+    # }
     data = {
-        "system_load": result[0],
-        "memory_free": result[1],
-        "disk_free": result[2],
-        "kernel_version": result[3],
-        "upgradable_packages": result[4:]
-        # "upgradable_packages": ['debugging','test','values']
+        "system_load": "78",
+        "memory_free": "4686138",
+        "disk_free": "25846853",
+        "kernel_version": "4.81.58-15",
+        # "upgradable_packages": result[4:]
+        "upgradable_packages": ['debugging','test','values']
     }
     return data
