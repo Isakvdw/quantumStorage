@@ -27,17 +27,17 @@ class Bucket(models.Model):
 # @returns (user: StorageUser, bucket: Bucket)
 class AppTokenManager(models.Manager):
     def authenticate(self, app_token):
-        key = self.objects.filter(token=app_token)
-        return key.first().user, key.first().bucket if key.exists() else None, None
+        key = self.filter(token=app_token)
+        return (key.first().user, key.first().bucket) if key.exists() else (None, None)
 
     def create_token(self, user, bucket):
         token = binascii.hexlify(os.urandom(20)).decode()
-        self.objects.create(token=token, user=user,bucke=bucket)
+        self.create(token=token, user=user,bucket=bucket)
         return token
 
     def delete_token(self, token):
-        temp = self.objects.filter(token=token)
-        if temp.exist():
+        temp = self.filter(token=token)
+        if temp.exists():
             temp.first().delete()
             return True
         return False
@@ -112,7 +112,8 @@ class StorageUser(AbstractBaseUser):
     username = models.CharField(max_length=50, primary_key=True)
     # email = models.EmailField(verbose_name='email', max_length=50, unique=True, primary_key=True)
     email = models.EmailField(verbose_name='email', max_length=255, unique=True)
-
+    # stores the api key temporarily
+    _key = None
     # refer to auth.py for masterkey handling
     masterkey = models.CharField(max_length=40, unique=True)
     quota = models.PositiveIntegerField(default=1024*1024) # 1 MB
@@ -137,6 +138,10 @@ class StorageUser(AbstractBaseUser):
     #         password_validation.password_changed(self._password, self)
     #         self._password = None
     #     self._masterkey = None
+    def getkey(self):
+        temp = self._key
+        self._key = None
+        return temp
 
 
     def set_password(self, raw_password):
@@ -145,10 +150,10 @@ class StorageUser(AbstractBaseUser):
         temp = make_password(key, AUTH_SALT)
         self.masterkey = temp
         # Todo: Do this a different way
-        print(temp)
+        # print(temp)
         print(key)
         self._password = raw_password
-        return key
+        self._key = key
 
     #Printout display name
     def __str__(self):
@@ -158,8 +163,8 @@ class StorageUser(AbstractBaseUser):
         return self.is_staff
 
     #We dont restrict on models, change if needed in future
-    # def has_module_perms(self, app_label):
-    #     return True
+    def has_module_perms(self, app_label):
+        return True
 
     @property
     def is_staff(self):

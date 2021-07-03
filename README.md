@@ -1,6 +1,29 @@
 # Quantum Storage
 ![](https://img.shields.io/badge/Python-3.9.4-yellow)  ![](https://img.shields.io/badge/Django-3.2.4-yellowgreen)
 
+---
+## Project setup
+- Clone repo
+- Create python venv and run `python3 -m pip install -r requirements.txt`
+- Install mpstat using `sudo apt install sysstat`  
+### Settings
+In quantumStorage/settings.py the following can be set  
+> [__REQUIRED__] STORAGE_ROOT  
+>  [__OPTIONAL__] STORAGE_DELETE  
+
+STORAGE_ROOT sets the directory where the user buckets should be stored.
+
+STORAGE_DELETE if specified, sets the directory where buckets will be moved instead of being deleted and will then have to be manually deleted.
+
+
+All specified locations must already exist as QuantumStorage will not attempt to create them
+
+---
+## API authentication
+
+Api auth is done with using one of the following headers:
+> X-API-MKEY: _master-token_  
+> X-API-AKEY: _application-token_
 
 ---
 ## API endpoints
@@ -13,6 +36,7 @@ Endpoint list:
 [POST] /bucket/remove/<bucket_name>
 [POST] /token/create/<bucket_name>
 [POST] /token/remove/<token>
+[POST] /token/remove/b/<bucket_name>
 [POST] /file/add/<bucket_name>/<location>
 [POST] /file/mkdir/<bucket_name>/<location>
 [POST] /file/remove/<bucket_name>/<file_location>
@@ -54,6 +78,11 @@ Create a new token for a specified bucket
 `[POST] /token/remove/<token>`
 
 Delete a token
+
+---
+`[POST] /token/remove/b/<bucket_name>`
+
+Delete all tokens associated with a bucket
 
 ---
 `[POST] /file/add/<bucket_name>/<location>`

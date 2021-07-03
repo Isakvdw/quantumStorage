@@ -135,8 +135,9 @@ AUTHENTICATION_BACKENDS = [
         'storageInterface.auth.AuthToken',
     ]
 AUTH_USER_MODEL = 'storageInterface.StorageUser'
+PROJECT_ROOT = path.dirname(path.realpath(__file__))
 
+#==== SETTINGS ====
 STORAGE_ROOT = 'N:\\TechTeam'
 # STORAGE_DELETE = 'N:\\TechTeam_del'
 STORAGE_DELETE = ''
-PROJECT_ROOT = path.dirname(path.realpath(__file__))

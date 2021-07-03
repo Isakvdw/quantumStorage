@@ -4,13 +4,15 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.core.exceptions import ValidationError
+from django.contrib import messages
+from django.shortcuts import render
 
 from storageInterface.models import StorageUser
 
 
 class UserCreationForm(forms.ModelForm):
-    """A form for creating new users. Includes all the required
-    fields, plus a repeated password."""
+    # A form for creating new users.
+
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
     password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput)
 
@@ -30,7 +32,7 @@ class UserCreationForm(forms.ModelForm):
         # Save the provided password in hashed format
         user = super().save(commit=False)
         key = user.set_password(self.cleaned_data["password1"])
-        print(key)
+        # print(key)
         if commit:
             user.save()
         return user
@@ -61,8 +63,7 @@ class UserAdmin(BaseUserAdmin):
         ('Personal info', {'fields': ('username','quota')}),
         ('Permissions', {'fields': ('is_admin',)}),
     )
-    # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
-    # overrides get_fieldsets to use this attribute when creating a user.
+
     add_fieldsets = (
             (None, {
             'classes': ('wide',),
@@ -73,6 +74,18 @@ class UserAdmin(BaseUserAdmin):
     ordering = ('email',)
     filter_horizontal = ()
 
+
+    def save_model(self, request, obj, form, change):
+        result = super(UserAdmin, self).save_model(request, obj, form, change)
+        temp = obj.getkey()
+        if temp:
+            messages.add_message(request, messages.WARNING, 'API KEY: '+temp)
+
+# def pass_reset_done(request):
+#     temp = request.user.getkey()
+#     if temp:
+#         messages.add_message(request, messages.WARNING, 'API KEY: ' + temp)
+#     return render(request, 'registration/password_change_done.html')
 
 # register the useradmin
 admin.site.register(StorageUser, UserAdmin)

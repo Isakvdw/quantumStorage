@@ -8,9 +8,6 @@ class AuthToken(BaseBackend):
     def authenticate(self, request, token=None):
         # Check the token, pass in the salt(pepper) - we can't use a salt since we dont have an independent identifier
         token_hash = make_password(token, settings.AUTH_SALT)
-        # Todo: random
-        print('authS: '+settings.AUTH_SALT)
-        print('auth: '+token_hash)
         try:
             return StorageUser.objects.get(masterkey=token_hash)
         except StorageUser.DoesNotExist:

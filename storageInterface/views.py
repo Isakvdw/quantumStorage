@@ -16,46 +16,22 @@ import subprocess
 
 
 # All requests are exempt from csrf since no forms are used - hence its not applicable
-@csrf_exempt
-def index(request):
-    # Authentication and method checks
-    if not request.META.get('HTTP_X_API_KEY') or not authenticate(request, token=request.META.get('HTTP_X_API_KEY')):
-        return HttpResponse('401 Unauthorized',status=401)
-    if request.method != 'POST':
-        return HttpResponse('401 Unauthorized',status=405)
-    # received_json_data = json.loads(request.body.decode("utf-8"))
-
-    # fs = FileSystemStorage(location='S:/TEST', base_url=None)
-    # path = fs.save('file.txt', ContentFile(b'new content'))
-    # try:
-    #     print(fs.listdir('../'))
-    # except SuspiciousFileOperation:
-    #     print(1)
-    #     return HttpResponse("INVALID OPERATION")
-    response = {
-        'msg': "Hello, world. You're at the root."
-    }
-    return JsonResponse(response)
-    # print(fs.url(path))
-    # return HttpResponse("Hello, world. You're at the root.")
-
-
 
 #==========================
 # Token management
 #==========================
 @csrf_exempt
-def token_add(request, bucket):
+def token_add(request, bucket_name):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    error, isMasterKey, user = validateRequest(request)
+    error, isMasterKey, user, currBucket = validateRequest(request,bucket_name=bucket_name)
     if error:
         return error
     if not isMasterKey:
         return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
-    app_token = AppTokens.objects.create_token(bucket=bucket, user=user)
+    app_token = AppTokens.objects.create_token(bucket=currBucket, user=user)
     data = {'token': app_token}
     return successResponse('Token creation successful', data)
 
@@ -64,7 +40,7 @@ def token_remove(request, token):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    error, isMasterKey, user = validateRequest(request)
+    error, isMasterKey, user, _ = validateRequest(request)
     if error:
         return error
     if not isMasterKey:
@@ -75,6 +51,22 @@ def token_remove(request, token):
 
     return successResponse('Token deletion successful')
 
+@csrf_exempt
+def token_remove_bucket(request, bucket_name):
+    # ++++++++++++++++++++++++++++++++
+    # Authentication and method checks
+    # ++++++++++++++++++++++++++++++++
+    error, isMasterKey, user, currBucket = validateRequest(request,bucket_name=bucket_name)
+    if error:
+        return error
+    if not isMasterKey:
+        return errorResponse('UNAUTHORIZED', 403)
+    # ++++++++++++++++++++++++++++++++
+    tokens = AppTokens.objects.filter(bucket=currBucket)
+    if not tokens.exists():
+        return errorResponse('BUCKET_DNE', 404)
+    tokens.delete()
+    return successResponse('Tokens deletion successful')
 #==========================
 
 #==========================
@@ -87,7 +79,7 @@ def bucket_list(request):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    error, isMasterKey, user = validateRequest(request, reqType='GET')
+    error, isMasterKey, user, _ = validateRequest(request, reqType='GET')
     if error:
         return error
     if not isMasterKey:
@@ -102,7 +94,7 @@ def bucket_add(request, bucket_name):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    error, isMasterKey, user = validateRequest(request)
+    error, isMasterKey, user, _ = validateRequest(request)
     if error:
         return error
     if not isMasterKey:
@@ -155,7 +147,7 @@ def file_quota(request):
     # ++++++++++++++++++++++++++++++++
     # Authentication and method checks
     # ++++++++++++++++++++++++++++++++
-    error, isMasterKey, user = validateRequest(request, reqType='GET')
+    error, isMasterKey, user, _ = validateRequest(request, reqType='GET')
     if error:
         return error
     # ++++++++++++++++++++++++++++++++)
@@ -349,7 +341,7 @@ def validateRequest(request, reqType='POST', bucket_name=None):
     if bucket_name:
         # if application token, check if bucket is correct
         if not master:
-            if bucket_name == linked_bucket:
+            if bucket_name == linked_bucket.name:
                 return None, master, user, linked_bucket
             else:
                 return errorResponse('INVALID_BUCKET'),None,None,None
@@ -361,7 +353,7 @@ def validateRequest(request, reqType='POST', bucket_name=None):
 
         return None, master, user, currBucket.first()
 
-    return None, master, user
+    return None, master, user, None
 
 
 # Gets size of all folder content to check against user quota
@@ -381,23 +373,23 @@ def getsize(user) -> int:
 
 def sys_info():
     script_loc = os.path.abspath(os.path.join(settings.PROJECT_ROOT, '..//system_info.sh'))
-    # process = subprocess.run(script_loc,capture_output=True,text=True)
-    # data = process.stdout
-    # result = data.strip().split('\n')
-    # data = {
-    #     "system_load": 100-int(result[0]),
-    #     "memory_free": result[1],
-    #     "disk_free": result[2],
-    #     "kernel_version": result[3],
-    #     "upgradable_packages": result[4:]
-    #     # "upgradable_packages": ['debugging','test','values']
-    # }
+    process = subprocess.run(script_loc,capture_output=True,text=True)
+    data = process.stdout
+    result = data.strip().splitlines()
     data = {
-        "system_load": "78",
-        "memory_free": "4686138",
-        "disk_free": "25846853",
-        "kernel_version": "4.81.58-15",
-        # "upgradable_packages": result[4:]
-        "upgradable_packages": ['debugging','test','values']
+        "system_load": 100-int(result[0]),
+        "memory_free": result[1],
+        "disk_free": result[2],
+        "kernel_version": result[3],
+        "upgradable_packages": result[4:]
+        # "upgradable_packages": ['debugging','test','values']
     }
+    # data = {
+    #     "system_load": "78",
+    #     "memory_free": "4686138",
+    #     "disk_free": "25846853",
+    #     "kernel_version": "4.81.58-15",
+    #     # "upgradable_packages": result[4:]
+    #     "upgradable_packages": ['debugging','test','values']
+    # }
     return data

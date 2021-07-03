@@ -15,8 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include,path
+# import storageInterface.admin
 
 urlpatterns = [
+    # path('admin/password_change/done/', storageInterface.admin.pass_reset_done, name='password_change_done'),
     path('admin/', admin.site.urls),
     path('API/', include('storageInterface.urls'), name='api'),
     path('', include('statusInfo.urls'), name='info'),
