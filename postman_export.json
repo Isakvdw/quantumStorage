@@ -1,0 +1,423 @@
+{
+	"info": {
+		"_postman_id": "9f7283b4-912c-4328-8be1-5b1c2fdbfa06",
+		"name": "tech_team",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/status",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "bucket list",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/bucket",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"bucket"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "bucket create",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": []
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/bucket/create/test123!",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"bucket",
+						"create",
+						"test123!"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "bucket remove",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": []
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/bucket/remove/test1231",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"bucket",
+						"remove",
+						"test1231"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "token create",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/token/create/mynewbucket",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"token",
+						"create",
+						"mynewbucket"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "token remove",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/token/remove/7668f685ceae444caf4325ab39eb1a5d46c6d31a",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"token",
+						"remove",
+						"7668f685ceae444caf4325ab39eb1a5d46c6d31a"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "token remove by bucket",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/token/remove/b/mynewbucket",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"token",
+						"remove",
+						"b",
+						"mynewbucket"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "file add",
+			"request": {
+				"auth": {
+					"type": "apikey",
+					"apikey": [
+						{
+							"key": "value",
+							"value": "{{APP_key}}",
+							"type": "string"
+						},
+						{
+							"key": "key",
+							"value": "X-API-AKEY",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "files",
+							"type": "file",
+							"src": [
+								"/F:/Documents/Uni/COS216/wheatley/access.log",
+								"/F:/Documents/Uni/COS216/wheatley/api.php",
+								"/F:/Documents/Uni/COS216/wheatley/favicon.ico"
+							]
+						},
+						{
+							"key": "force",
+							"value": "true",
+							"type": "text",
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/file/add/mynewbucket/test2",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"file",
+						"add",
+						"mynewbucket",
+						"test2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "file mkdir",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/file/mkdir/mynewbucket/test",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"file",
+						"mkdir",
+						"mynewbucket",
+						"test"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "file remove",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/file/remove/mynewbucket/test1/1test.txt",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"file",
+						"remove",
+						"mynewbucket",
+						"test1",
+						"1test.txt"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "file get",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/file/get/mynewbucket/new",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"file",
+						"get",
+						"mynewbucket",
+						"new"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "file download",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/file/download/6d7exjv1bt-28c3a4fd4e95d7fc2fad519275c8411b",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"file",
+						"download",
+						"6d7exjv1bt-28c3a4fd4e95d7fc2fad519275c8411b"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "quota",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/API/file/quota",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"API",
+						"file",
+						"quota"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "key",
+				"value": "X-API-MKEY",
+				"type": "string"
+			},
+			{
+				"key": "value",
+				"value": "{{API_key}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "API_key",
+			"value": "87ca8eb3e3599b0931c3be950f249ad6bcba6a2b"
+		},
+		{
+			"key": "APP_key",
+			"value": "7668f685ceae444caf4325ab39eb1a5d46c6d31a"
+		}
+	]
+}
