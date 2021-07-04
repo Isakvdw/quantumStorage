@@ -21,8 +21,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'a45erf%$sosd4^si16_=+sd4k_dra=ktbudsee_sv8ipj5pb*179x&jhlsm)w77x_ql%$34dfsDDFG%$8hm!c'
-# Custom auth salt(pepper), this value can be changed to invalidate all master keys in case of compromise
-AUTH_SALT = 'j%Uh'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -141,3 +139,6 @@ PROJECT_ROOT = path.dirname(path.realpath(__file__))
 STORAGE_ROOT = 'N:\\TechTeam'
 # STORAGE_DELETE = 'N:\\TechTeam_del'
 STORAGE_DELETE = ''
+# Custom auth salt(pepper), this value can be changed to invalidate all master and application tokens in case of compromise
+# Used to hash tokens
+AUTH_SALT = 'j%Uh'

@@ -24,19 +24,27 @@ class Bucket(models.Model):
     class Meta:
         unique_together = ("owner","name")
 
-# @returns (user: StorageUser, bucket: Bucket)
+# handles app token auth
 class AppTokenManager(models.Manager):
+    # @returns (user: StorageUser, bucket: Bucket)
     def authenticate(self, app_token):
-        key = self.filter(token=app_token)
-        return (key.first().user, key.first().bucket) if key.exists() else (None, None)
+        # hash tokens before storing in db
+        app_token_hash = make_password(app_token, settings.AUTH_SALT)
+        try:
+            token_temp = self.get(token=app_token_hash)
+            return token_temp.user, token_temp.bucket
+        except AppTokens.DoesNotExist:
+            return None, None
 
     def create_token(self, user, bucket):
-        token = binascii.hexlify(os.urandom(20)).decode()
-        self.create(token=token, user=user,bucket=bucket)
-        return token
+        app_token = binascii.hexlify(os.urandom(20)).decode()
+        app_token_hash = make_password(app_token, settings.AUTH_SALT)
+        self.create(token=app_token_hash, user=user,bucket=bucket)
+        return app_token
 
-    def delete_token(self, token):
-        temp = self.filter(token=token)
+    def delete_token(self, app_token):
+        app_token_hash = make_password(app_token, settings.AUTH_SALT)
+        temp = self.filter(token=app_token_hash)
         if temp.exists():
             temp.first().delete()
             return True
@@ -67,9 +75,8 @@ class DownloadTokens(models.Model):
 
 class StorageUserManager(BaseUserManager):
     def create_user(self, email, username, password):
-        """
-        Creates and saves a User with the given email and password.
-        """
+        # Creates and saves a User with the given email and password.
+
         if not email:
             raise ValueError('Users must have an email address')
         if not username:
@@ -94,9 +101,7 @@ class StorageUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, username, password):
-        """
-        Creates and saves a superuser with the given email and password.
-        """
+        # Creates and saves a superuser with the given email and password.
 
         user = self.create_user(
             email,
@@ -118,10 +123,11 @@ class StorageUser(AbstractBaseUser):
     masterkey = models.CharField(max_length=40, unique=True)
     quota = models.PositiveIntegerField(default=1024*1024) # 1 MB
 
+    # can uncomment if needed in future
     # creation_date = models.DateTimeField(verbose_name='creation_date', auto_now_add=True)
     # last_login = models.DateTimeField(verbose_name='last_login', auto_now=True)
 
-    #admin page required fields
+    # admin page required fields
     is_active = models.BooleanField(default='True')
     is_admin = models.BooleanField(default='False')
 
@@ -143,7 +149,7 @@ class StorageUser(AbstractBaseUser):
         self._key = None
         return temp
 
-
+    # sets user password and creates master token randomly
     def set_password(self, raw_password):
         self.password = make_password(raw_password)
         key = binascii.hexlify(os.urandom(20)).decode()
@@ -151,18 +157,18 @@ class StorageUser(AbstractBaseUser):
         self.masterkey = temp
         # Todo: Do this a different way
         # print(temp)
-        print(key)
+        # print(key)
         self._password = raw_password
         self._key = key
 
-    #Printout display name
+    # Printout display name
     def __str__(self):
         return self.email
 
     def has_perm(self, perm, obj=None):
         return self.is_staff
 
-    #We dont restrict on models, change if needed in future
+    # We dont restrict on models, change if needed in future
     def has_module_perms(self, app_label):
         return True
 

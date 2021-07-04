@@ -1,17 +1,24 @@
 # Quantum Storage
-![](https://img.shields.io/badge/Python-3.9.4-yellow)  ![](https://img.shields.io/badge/Django-3.2.4-yellowgreen)
+![](https://img.shields.io/badge/Python-3.9.4-yellow) ![](https://img.shields.io/badge/Django-3.2.4-yellowgreen)
 
 ---
 ## Project setup
 - Clone repo
 - Create python venv and run `python3 -m pip install -r requirements.txt`
-- Install mpstat using `sudo apt install sysstat`  
+- Install mpstat using `sudo apt install sysstat`
+- Create new user in admin or use example credentials given below [Note: Password change not implemented]
+
+Example admin credentials:  
+Username: `testuser`  
+Password: `test@quantumStorage`  
+Master token: `3e122606ab557721d279750a875abc551f69345a`  
+
 ### Settings
 In quantumStorage/settings.py the following can be set  
 > [__REQUIRED__] STORAGE_ROOT  
->  [__OPTIONAL__] STORAGE_DELETE  
+> [__OPTIONAL__] STORAGE_DELETE  
 
-STORAGE_ROOT sets the directory where the user buckets should be stored.
+STORAGE_ROOT sets the directory where the user buckets should be stored. Do not put this under the webroot or under a user's dir, use something like `/QuantumStorage/buckets`
 
 STORAGE_DELETE if specified, sets the directory where buckets will be moved instead of being deleted and will then have to be manually deleted.
 
@@ -74,7 +81,8 @@ Delete the bucket identified by its unique name
 ---
 `[POST] /token/create/<bucket_name>`
 
-Create a new token for a specified bucket
+Create a new token for a specified bucket  
+__make sure to securely store the token somewhere as it cannot be retrieved again__
 
 ---
 `[POST] /token/remove/<token>`
