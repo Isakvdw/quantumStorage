@@ -51,7 +51,8 @@ Endpoint list:
 [GET] /file/download/<file_token>
 [GET] /file/quota
 ```
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/15577097-9f7283b4-912c-4328-8be1-5b1c2fdbfa06?action=collection%2Ffork&collection-url=entityId%3D15577097-9f7283b4-912c-4328-8be1-5b1c2fdbfa06%26entityType%3Dcollection%26workspaceId%3Db6328c5e-b918-4f79-ba75-733d9b19a768)
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/15577097-9f7283b4-912c-4328-8be1-5b1c2fdbfa06?action=collection%2Ffork&collection-url=entityId%3D15577097-9f7283b4-912c-4328-8be1-5b1c2fdbfa06%26entityType%3Dcollection%26workspaceId%3Db6328c5e-b918-4f79-ba75-733d9b19a768)  
+Alternatively python tests can be found in /tests, as well as a postman config export postman_export.json
 
 ---
 `[GET] /status`
