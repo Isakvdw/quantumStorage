@@ -61,7 +61,7 @@
 					"formdata": []
 				},
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/bucket/create/test123!",
+					"raw": "http://127.0.0.1:8000/API/bucket/create/mainbucket",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -74,7 +74,7 @@
 						"API",
 						"bucket",
 						"create",
-						"test123!"
+						"mainbucket"
 					]
 				}
 			},
@@ -90,7 +90,7 @@
 					"formdata": []
 				},
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/bucket/remove/test1231",
+					"raw": "http://127.0.0.1:8000/API/bucket/remove/mainbucket",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -103,7 +103,7 @@
 						"API",
 						"bucket",
 						"remove",
-						"test1231"
+						"mainbucket"
 					]
 				}
 			},
@@ -115,7 +115,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/token/create/mynewbucket",
+					"raw": "http://127.0.0.1:8000/API/token/create/mainbucket",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -128,7 +128,7 @@
 						"API",
 						"token",
 						"create",
-						"mynewbucket"
+						"mainbucket"
 					]
 				}
 			},
@@ -165,7 +165,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/token/remove/b/mynewbucket",
+					"raw": "http://127.0.0.1:8000/API/token/remove/b/mainbucket",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -179,7 +179,7 @@
 						"token",
 						"remove",
 						"b",
-						"mynewbucket"
+						"mainbucket"
 					]
 				}
 			},
@@ -188,21 +188,6 @@
 		{
 			"name": "file add",
 			"request": {
-				"auth": {
-					"type": "apikey",
-					"apikey": [
-						{
-							"key": "value",
-							"value": "{{APP_key}}",
-							"type": "string"
-						},
-						{
-							"key": "key",
-							"value": "X-API-AKEY",
-							"type": "string"
-						}
-					]
-				},
 				"method": "POST",
 				"header": [],
 				"body": {
@@ -211,11 +196,7 @@
 						{
 							"key": "files",
 							"type": "file",
-							"src": [
-								"/F:/Documents/Uni/COS216/wheatley/access.log",
-								"/F:/Documents/Uni/COS216/wheatley/api.php",
-								"/F:/Documents/Uni/COS216/wheatley/favicon.ico"
-							]
+							"src": []
 						},
 						{
 							"key": "force",
@@ -226,7 +207,7 @@
 					]
 				},
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/file/add/mynewbucket/test2",
+					"raw": "http://127.0.0.1:8000/API/file/add/mainbucket/test_dir",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -239,8 +220,8 @@
 						"API",
 						"file",
 						"add",
-						"mynewbucket",
-						"test2"
+						"mainbucket",
+						"test_dir"
 					]
 				}
 			},
@@ -252,7 +233,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/file/mkdir/mynewbucket/test",
+					"raw": "http://127.0.0.1:8000/API/file/mkdir/mainbucket/test",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -265,7 +246,7 @@
 						"API",
 						"file",
 						"mkdir",
-						"mynewbucket",
+						"mainbucket",
 						"test"
 					]
 				}
@@ -278,7 +259,7 @@
 				"method": "POST",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/file/remove/mynewbucket/test1/1test.txt",
+					"raw": "http://127.0.0.1:8000/API/file/remove/mainbucket/test_dir/this_is_a_file.txt",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -291,9 +272,9 @@
 						"API",
 						"file",
 						"remove",
-						"mynewbucket",
-						"test1",
-						"1test.txt"
+						"mainbucket",
+						"test_dir",
+						"this_is_a_file.txt"
 					]
 				}
 			},
@@ -305,7 +286,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/API/file/get/mynewbucket/new",
+					"raw": "http://127.0.0.1:8000/API/file/get/mainbucket/new.txt",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -318,8 +299,8 @@
 						"API",
 						"file",
 						"get",
-						"mynewbucket",
-						"new"
+						"mainbucket",
+						"new.txt"
 					]
 				}
 			},
@@ -417,7 +398,8 @@
 		},
 		{
 			"key": "APP_key",
-			"value": "7668f685ceae444caf4325ab39eb1a5d46c6d31a"
+			"value": "7668f685ceae444caf4325ab39eb1a5d46c6d31a",
+			"disabled": true
 		}
 	]
 }

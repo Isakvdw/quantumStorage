@@ -46,7 +46,7 @@ def token_remove(request, token):
     if not isMasterKey:
         return errorResponse('UNAUTHORIZED', 403)
     # ++++++++++++++++++++++++++++++++
-    if not AppTokens.objects.delete_token(token=token):
+    if not AppTokens.objects.delete_token(app_token=token):
         return errorResponse('TOKEN_DNE', 404)
 
     return successResponse('Token deletion successful')
@@ -205,13 +205,15 @@ def file_remove(request, bucket_name, file_location):
     currRoot = os.path.join(settings.STORAGE_ROOT, str(currBucket.id))
     fs = FileSystemStorage(location=currRoot, base_url=None, file_permissions_mode=0o600, directory_permissions_mode=0o600)
     # ++++++++++++++++++++++++++++++++
+    try:
+        # if its a directory, then check if its empty
+        if os.path.isdir(fs.path(file_location)) and not len(os.listdir(fs.path(file_location))):
+            return errorResponse('DIR_NOT_EMPTY', 400)
 
-    # if its a directory, then check if its empty
-    if os.path.isdir(fs.path(file_location)) and not len(os.listdir(fs.path(file_location))):
-        return errorResponse('DIR_NOT_EMPTY', 400)
-
-    # finally delete it, if item DNE it wont throw error
-    fs.delete(file_location)
+        # finally delete it, if item DNE it wont throw error
+        fs.delete(file_location)
+    except SuspiciousFileOperation:
+        return errorResponse('INVALID_PATH')
 
     return successResponse('File delete completed')
 
@@ -237,6 +239,9 @@ def file_mkdir(request, bucket_name, location):
         fs.delete(temp)
     except OSError:
         return errorResponse('INVALID_DIR', 400)
+    except SuspiciousFileOperation:
+        return errorResponse('INVALID_PATH')
+
     return successResponse('mkdir successful')
 
 @csrf_exempt
@@ -252,11 +257,16 @@ def file_get(request, bucket_name, file_location):
     # check if file exists
     currRoot = os.path.join(settings.STORAGE_ROOT, str(currBucket.id))
     fs = FileSystemStorage(location=currRoot, base_url=None)
-    if not fs.exists(file_location):
-        return errorResponse('FILE_DNE', 404)
-    # check if its a folder
-    if os.path.isdir(fs.path(file_location)):
-        return errorResponse('NOT_A_FILE', 404)
+    try:
+        if not fs.exists(file_location):
+            return errorResponse('FILE_DNE', 404)
+
+        # check if its a folder
+        if os.path.isdir(fs.path(file_location)):
+            return errorResponse('NOT_A_FILE', 404)
+    except SuspiciousFileOperation:
+        return errorResponse('INVALID_PATH')
+
     # ++++++++++++++++++++++++++++++++
     file_token = file_token_generator.make_token(currBucket, file_location)
     if not file_token:
@@ -372,6 +382,17 @@ def getsize(user) -> int:
 
 
 def sys_info():
+    # for testing that it doesnt crash on windows
+    if os.name == 'nt':
+        data = {
+            "system_load": "",
+            "memory_free": "",
+            "disk_free": "",
+            "kernel_version": "",
+            "upgradable_packages": ['']
+        }
+        return data
+
     script_loc = os.path.abspath(os.path.join(settings.PROJECT_ROOT, '..//system_info.sh'))
     process = subprocess.run(script_loc,capture_output=True,text=True)
     data = process.stdout
@@ -384,12 +405,4 @@ def sys_info():
         "upgradable_packages": result[4:]
         # "upgradable_packages": ['debugging','test','values']
     }
-    # data = {
-    #     "system_load": "78",
-    #     "memory_free": "4686138",
-    #     "disk_free": "25846853",
-    #     "kernel_version": "4.81.58-15",
-    #     # "upgradable_packages": result[4:]
-    #     "upgradable_packages": ['debugging','test','values']
-    # }
     return data
